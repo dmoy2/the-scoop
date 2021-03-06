@@ -2,7 +2,9 @@
 let database = {
   users: {},
   articles: {},
-  nextArticleId: 1
+  nextArticleId: 1, 
+  comments: {},
+  nextCommentId: 1
 };
 
 const routes = {
@@ -26,7 +28,13 @@ const routes = {
   },
   '/articles/:id/downvote': {
     'PUT': downvoteArticle
-  }
+  },
+  '/comments': {
+    'POST': createComment
+  },
+  '/comments/:id': {},
+  '/comments/:id/upvote': {},
+  '/comments/:id/downvote': {}
 };
 
 function getUser(url, request) {
@@ -238,6 +246,52 @@ function downvote(item, username) {
     item.downvotedBy.push(username);
   }
   return item;
+}
+
+function createComment(url, request) {
+  const response = {};
+
+  if (!request.body) {
+    response.status = 400;
+    return response;
+  }
+
+  const commentInfo = request.body.comment;
+
+  if (commentInfo && commentInfo.body && commentInfo.username && commentInfo.articleId) {
+    // create new comment object 
+    const newComment = {
+      id: database.nextCommentId++,
+      body: commentInfo.body,
+      username: commentInfo.username,
+      articleId: commentInfo.articleId,
+      upvotedBy: [],
+      downvotedBy: []
+    }
+
+    // validate username and article exist 
+    if(database.users[newComment.username] && database.articles[newComment.articleId]) {
+      if (database.users[newComment.username]) {
+        // adding new comment to database
+        database.comments[newComment.id] = newComment;
+  
+        // add comment ID to author's commentIds 
+        database.users[newComment.username].commentIds.push(newComment.id);
+  
+        // add comment ID to article's commendIds
+        database.articles[newComment.articleId].commentIds.push(newComment.id);
+  
+        response.body = {comment: newComment};
+        response.status = 201;
+      }
+    } else {
+      response.status = 400;
+    }
+  } else {
+    response.status = 400;
+  }
+    
+  return response;
 }
 
 // Write all code above this line.
