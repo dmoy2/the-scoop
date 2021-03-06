@@ -39,7 +39,9 @@ const routes = {
   '/comments/:id/upvote': {
     'PUT': updateUpvotedBy
   },
-  '/comments/:id/downvote': {}
+  '/comments/:id/downvote': {
+    'PUT': updateDownvotedBy
+  }
 };
 
 function getUser(url, request) {
@@ -354,17 +356,49 @@ function updateUpvotedBy(url, request) {
   return response;
 }
 
-function upvoteComment(item, username) {
+function upvoteComment(comment, username) {
   // remove a user from downvotedBy if they switch to upvote
-  if(item.downvotedBy.includes(username)) {
-    item.downvotedBy.splice(item.downvotedBy.indexOf(username), 1);
+  if(comment.downvotedBy.includes(username)) {
+    comment.downvotedBy.splice(comment.downvotedBy.indexOf(username), 1);
   }
   // add a user to upvotedBy 
-  if (!item.upvotedBy.includes(username)) {
-    item.upvotedBy.push(username);
+  if (!comment.upvotedBy.includes(username)) {
+    comment.upvotedBy.push(username);
   }
 
-  return item;
+  return comment;
+}
+
+function updateDownvotedBy(url, request) {
+  const commentId = Number(url.split('/').filter(segment => segment)[1]);
+  const username = request.body && request.body.username;
+  let savedComment = database.comments[commentId];
+  const response = {};
+
+  if (savedComment && database.users[username]) {
+    savedComment = downvoteComment(savedComment, username);
+    
+    response.body = {comment: savedComment};
+    response.status = 200;
+  } else {
+    response.status = 400;
+  }
+
+  return response;
+}
+
+function downvoteComment(comment, username) {
+  // downvote a comment 
+  if (!comment.downvotedBy.includes(username)) {
+    comment.downvotedBy.push(username);
+  }
+
+  // remove a user from upvotedBy if they switch to downvote
+  if (comment.upvotedBy.includes(username)) {
+    comment.upvotedBy.splice(comment.upvotedBy.indexOf(username), 1);
+  }
+
+  return comment;
 }
 
 // Write all code above this line.
