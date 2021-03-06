@@ -36,7 +36,9 @@ const routes = {
     'PUT': updateComment,
     'DELETE': deleteComment
   },
-  '/comments/:id/upvote': {},
+  '/comments/:id/upvote': {
+    'PUT': updateUpvotedBy
+  },
   '/comments/:id/downvote': {}
 };
 
@@ -253,16 +255,16 @@ function downvote(item, username) {
 
 function createComment(url, request) {
   const response = {};
-  const commentInfo = request.body && request.body.comment;
+  const requestComment = request.body && request.body.comment;
 
-  if (commentInfo && commentInfo.body && commentInfo.username && commentInfo.articleId &&
-    database.users[commentInfo.username] && database.articles[commentInfo.articleId]) {
+  if (requestComment && requestComment.body && requestComment.username && requestComment.articleId &&
+    database.users[requestComment.username] && database.articles[requestComment.articleId]) {
     // create new comment object 
     const newComment = {
       id: database.nextCommentId++,
-      body: commentInfo.body,
-      username: commentInfo.username,
-      articleId: commentInfo.articleId,
+      body: requestComment.body,
+      username: requestComment.username,
+      articleId: requestComment.articleId,
       upvotedBy: [],
       downvotedBy: []
     }
@@ -331,6 +333,38 @@ function deleteComment(url, request) {
   }
   
   return response;
+}
+
+function updateUpvotedBy(url, request) {
+  const commentId = Number(url.split('/').filter(segment => segment)[1]);
+  const username = request.body && request.body.username;
+  let savedComment = database.comments[commentId];
+  const response = {};
+
+  if (savedComment && database.users[username]) {
+    // upvote a comment 
+    savedComment = upvoteComment(savedComment, username);
+  
+    response.body = {comment: savedComment};
+    response.status = 200;
+  } else {
+    response.status = 400;
+  }
+
+  return response;
+}
+
+function upvoteComment(item, username) {
+  // remove a user from downvotedBy if they switch to upvote
+  if(item.downvotedBy.includes(username)) {
+    item.downvotedBy.splice(item.downvotedBy.indexOf(username), 1);
+  }
+  // add a user to upvotedBy 
+  if (!item.upvotedBy.includes(username)) {
+    item.upvotedBy.push(username);
+  }
+
+  return item;
 }
 
 // Write all code above this line.
