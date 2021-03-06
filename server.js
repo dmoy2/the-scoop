@@ -32,7 +32,9 @@ const routes = {
   '/comments': {
     'POST': createComment
   },
-  '/comments/:id': {},
+  '/comments/:id': {
+    'PUT': updateComment
+  },
   '/comments/:id/upvote': {},
   '/comments/:id/downvote': {}
 };
@@ -278,6 +280,30 @@ function createComment(url, request) {
     response.status = 400;
   }
   
+  return response;
+}
+
+function updateComment(url, request) {
+  // retreive id & updated comment from url parameter 
+  const id = Number(url.split('/').filter(segment => segment)[1]);
+  const requestComment = request.body && request.body.comment;
+  const savedComment = database.comments[id];
+  const response = {};
+
+  if (!savedComment) {
+    // non-existing comment 
+    response.status = 404;
+  } else if (!requestComment) {
+    // non-supplied request body or updated comment 
+    response.status = 400;
+  } else { 
+    // update existing comment if request comment is valid
+    savedComment.body = requestComment.body || savedComment.body;
+
+    response.body = {comment: savedComment};
+    response.status = 200;
+  }
+
   return response;
 }
 
