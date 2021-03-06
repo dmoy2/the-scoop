@@ -250,15 +250,10 @@ function downvote(item, username) {
 
 function createComment(url, request) {
   const response = {};
+  const commentInfo = request.body && request.body.comment;
 
-  if (!request.body) {
-    response.status = 400;
-    return response;
-  }
-
-  const commentInfo = request.body.comment;
-
-  if (commentInfo && commentInfo.body && commentInfo.username && commentInfo.articleId) {
+  if (commentInfo && commentInfo.body && commentInfo.username && commentInfo.articleId &&
+    database.users[commentInfo.username] && database.articles[commentInfo.articleId]) {
     // create new comment object 
     const newComment = {
       id: database.nextCommentId++,
@@ -268,29 +263,21 @@ function createComment(url, request) {
       upvotedBy: [],
       downvotedBy: []
     }
+    // adding new comment to database
+    database.comments[newComment.id] = newComment;
 
-    // validate username and article exist 
-    if(database.users[newComment.username] && database.articles[newComment.articleId]) {
-      if (database.users[newComment.username]) {
-        // adding new comment to database
-        database.comments[newComment.id] = newComment;
-  
-        // add comment ID to author's commentIds 
-        database.users[newComment.username].commentIds.push(newComment.id);
-  
-        // add comment ID to article's commendIds
-        database.articles[newComment.articleId].commentIds.push(newComment.id);
-  
-        response.body = {comment: newComment};
-        response.status = 201;
-      }
-    } else {
-      response.status = 400;
-    }
+    // add comment ID to author's commentIds 
+    database.users[newComment.username].commentIds.push(newComment.id);
+
+    // add comment ID to article's commendIds
+    database.articles[newComment.articleId].commentIds.push(newComment.id);
+
+    response.body = {comment: newComment};
+    response.status = 201;
   } else {
     response.status = 400;
   }
-    
+  
   return response;
 }
 
